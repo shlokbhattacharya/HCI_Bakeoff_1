@@ -21,6 +21,7 @@ int misses = 0; //number of missed clicks
 Robot robot; //initialized in setup 
 
 int numRepeats = 1; //sets the number of times each button repeats in the user study. 1 = each square will appear as the target once.
+final int invisiblePadding = 20;
 
 void setup()
 {
@@ -97,7 +98,7 @@ void mousePressed() //mouse was pressed! Test to see if hit was in target!
     println("we're done!"); //write to terminal some output. Useful for debugging too.
   }
 
-  Rectangle bounds = getButtonLocation(trials.get(trialNum));
+  Rectangle bounds = getButtonHitbox(trials.get(trialNum));
 
  //check to see if mouse cursor is inside target button 
   if ((mouseX > bounds.x && mouseX < bounds.x + bounds.width) && (mouseY > bounds.y && mouseY < bounds.y + bounds.height)) // test to see if hit was within bounds
@@ -123,6 +124,17 @@ Rectangle getButtonLocation(int i) //for a given button index, what is its locat
    int x = (i % 4) * (padding + buttonSize) + margin;
    int y = (i / 4) * (padding + buttonSize) + margin;
    return new Rectangle(x, y, buttonSize, buttonSize);
+}
+
+Rectangle getButtonHitbox(int i)
+{
+  Rectangle r = getButtonLocation(i);
+  return new Rectangle(
+    r.x - invisiblePadding,
+    r.y - invisiblePadding,
+    r.width + 2*invisiblePadding,
+    r.height + 2*invisiblePadding
+  );
 }
 
 //you can edit this method to change how buttons appear if you wish. 
