@@ -91,10 +91,10 @@ void draw()
 
   if (isHoveringOverButton()) {
     fill(255, 0, 0, 200); 
-     // green when hovering a button
+     // red when hovering
   } else {
     fill(255, 255, 0, 200);
-    // red otherwise
+    // yellow otherwise
   }
   ellipse(mouseX, mouseY, 20, 20);
 
