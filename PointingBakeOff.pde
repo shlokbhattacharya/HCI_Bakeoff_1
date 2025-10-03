@@ -21,6 +21,9 @@ int misses = 0; //number of missed clicks
 Robot robot; //initialized in setup 
 
 int numRepeats = 1; //sets the number of times each button repeats in the user study. 1 = each square will appear as the target once.
+int hoveredIndex = -1;      // which button is currently hovered (-1 = none)
+final float hoverScale = 1.2; // how much bigger on hover (e.g., 1.2 = +20%)
+
 
 void setup()
 {
@@ -75,6 +78,15 @@ void draw()
   }
 
   text((trialNum + 1) + " of " + trials.size(), 40, 20); //display what trial the user is on
+  
+  hoveredIndex = -1;
+  for (int i = 0; i < 16; i++) {
+    Rectangle b = getButtonLocation(i);
+    if (mouseX > b.x && mouseX < b.x + b.width && mouseY > b.y && mouseY < b.y + b.height) {
+      hoveredIndex = i;
+      break;
+    }
+  }
 
   for (int i = 0; i < 16; i++)// for all buttons
     drawButton(i); //draw button
@@ -130,13 +142,20 @@ void drawButton(int i)
 {
   Rectangle bounds = getButtonLocation(i);
 
-  if (trials.get(trialNum) == i) // see if current button is the target
-    fill(0, 255, 255); // if so, fill cyan
-  else
-    fill(200); // if not, fill gray
 
-  rect(bounds.x, bounds.y, bounds.width, bounds.height); //draw button
+  if (i == hoveredIndex) {
+    fill(255, 165, 0); // orange if hovered
+  }
+  else if (trials.get(trialNum) == i) {
+    fill(0, 255, 255); // cyan if it's the active target
+  }
+  else {
+    fill(200); // gray if idle
+  }
+
+  rect(bounds.x, bounds.y, bounds.width, bounds.height);
 }
+
 
 void mouseMoved()
 {
