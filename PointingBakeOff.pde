@@ -22,6 +22,11 @@ Robot robot; //initialized in setup
 
 int numRepeats = 1; //sets the number of times each button repeats in the user study. 1 = each square will appear as the target once.
 
+// Snapping variables
+final float SNAP_DISTANCE = 100; // distance within which cursor will snap to button center
+int snappedX = -1; // current snapped X position (-1 means no snap)
+int snappedY = -1; // current snapped Y position
+
 void setup()
 {
   size(700, 700); // set the size of the window
@@ -79,8 +84,45 @@ void draw()
   for (int i = 0; i < 16; i++)// for all buttons
     drawButton(i); //draw button
 
+  // Calculate snapped position based on nearest button
+  updateSnappedPosition();
+
   fill(255, 0, 0, 200); // set fill color to translucent red
-  ellipse(mouseX, mouseY, 20, 20); //draw user cursor as a circle with a diameter of 20
+  // Draw cursor at snapped position if snapping is active, otherwise at mouse position
+  if (snappedX != -1 && snappedY != -1) {
+    ellipse(snappedX, snappedY, 20, 20); //draw snapped cursor
+  } else {
+    ellipse(mouseX, mouseY, 20, 20); //draw regular cursor
+  }
+}
+
+// Calculate and update the snapped cursor position
+void updateSnappedPosition() {
+  float minDistance = SNAP_DISTANCE;
+  int closestButtonX = -1;
+  int closestButtonY = -1;
+  
+  // Check all 16 buttons to find the nearest one
+  for (int i = 0; i < 16; i++) {
+    Rectangle bounds = getButtonLocation(i);
+    // Calculate button center
+    int buttonCenterX = bounds.x + bounds.width / 2;
+    int buttonCenterY = bounds.y + bounds.height / 2;
+    
+    // Calculate distance from mouse to button center
+    float distance = dist(mouseX, mouseY, buttonCenterX, buttonCenterY);
+    
+    // If this button is closer than previous closest, update
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestButtonX = buttonCenterX;
+      closestButtonY = buttonCenterY;
+    }
+  }
+  
+  // Update snapped position
+  snappedX = closestButtonX;
+  snappedY = closestButtonY;
 }
 
 void mousePressed() //mouse was pressed! Test to see if hit was in target!
@@ -99,8 +141,12 @@ void mousePressed() //mouse was pressed! Test to see if hit was in target!
 
   Rectangle bounds = getButtonLocation(trials.get(trialNum));
 
+  // Use snapped position if available, otherwise use actual mouse position
+  int clickX = (snappedX != -1) ? snappedX : mouseX;
+  int clickY = (snappedY != -1) ? snappedY : mouseY;
+
  //check to see if mouse cursor is inside target button 
-  if ((mouseX > bounds.x && mouseX < bounds.x + bounds.width) && (mouseY > bounds.y && mouseY < bounds.y + bounds.height)) // test to see if hit was within bounds
+  if ((clickX > bounds.x && clickX < bounds.x + bounds.width) && (clickY > bounds.y && clickY < bounds.y + bounds.height)) // test to see if hit was within bounds
   {
     System.out.println("HIT! " + trialNum + " " + (millis() - startTime)); // success
     hits++; 
