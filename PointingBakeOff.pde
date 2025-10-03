@@ -79,8 +79,14 @@ void draw()
   for (int i = 0; i < 16; i++)// for all buttons
     drawButton(i); //draw button
 
-  fill(255, 0, 0, 200); // set fill color to translucent red
-  ellipse(mouseX, mouseY, 20, 20); //draw user cursor as a circle with a diameter of 20
+  fill(255, 0, 0, 200);
+  ellipse(mouseX, mouseY, 35, 35); // main dot
+  stroke(255);       // white outline
+  strokeWeight(3);   // thicker border
+  noFill();
+  ellipse(mouseX, mouseY, 39, 39); // outline just outside the dot
+  noStroke(); // reset stroke for later shapes
+
 }
 
 void mousePressed() //mouse was pressed! Test to see if hit was in target!
