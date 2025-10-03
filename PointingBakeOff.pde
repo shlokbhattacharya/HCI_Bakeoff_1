@@ -1,5 +1,4 @@
 //when in doubt, consult the Processsing reference: https://processing.org/reference/
-
 //Importing some useful packages
 import java.awt.AWTException;
 import java.awt.Rectangle;
@@ -18,9 +17,12 @@ int startTime = 0; // time starts when the first click is captured
 int finishTime = 0; //records the time of the final click
 int hits = 0; //number of successful clicks
 int misses = 0; //number of missed clicks
-Robot robot; //initialized in setup 
-
+Robot robot; //initialized in setup
 int numRepeats = 1; //sets the number of times each button repeats in the user study. 1 = each square will appear as the target once.
+
+// Glow animation variables
+float glowIntensity = 0; //controls the glow animation
+float glowDirection = 1; //direction of glow (increasing or decreasing)
 
 void setup()
 {
@@ -33,11 +35,13 @@ void setup()
   ellipseMode(CENTER); //ellipses are drawn from the center (BUT RECTANGLES ARE NOT! By default, rectangles are drawn from their upper left corner. )
   //rectMode(CENTER); //enabling will break the scaffold code, but you might find it easier to work with centered rects
 
- //optional code below. This creates a "Java Robot" class that can move the system cursor.
-  try {
-    robot = new Robot(); 
-  } 
-  catch (AWTException e) {
+  //optional code below. This creates a "Java Robot" class that can move the system cursor.
+  try
+  {
+    robot = new Robot();
+  }
+  catch (AWTException e)
+  {
     e.printStackTrace();
   }
 
@@ -46,25 +50,37 @@ void setup()
   for (int i = 0; i < 16; i++) //loop for the number of buttons in 4x4 grid (i.e., 16)
     for (int k = 0; k < numRepeats; k++) //loop for the number of times each button repeats. Scaffold code default is 1, but it will be higher in the actual bakeoff.
       trials.add(i);
+
   Collections.shuffle(trials); //randomize the order of the targets
   System.out.println("trial order: " + trials); //print out the target list for debugging
-  
+
   surface.setLocation(0,0);// put window in top left corner of screen (doesn't always work)
 }
-
 
 void draw()
 {
   background(0); //black out the window each time we draw.
   fill(255); //set fill color to white
 
+  // Update glow animation
+  glowIntensity += glowDirection * 0.05;
+  if (glowIntensity >= 1)
+  {
+    glowIntensity = 1;
+    glowDirection = -1;
+  }
+  else if (glowIntensity <= 0)
+  {
+    glowIntensity = 0;
+    glowDirection = 1;
+  }
+
   if (trialNum >= trials.size()) //check to see if user study is over
   {
     float timeTaken = (finishTime-startTime) / 1000f;
     float penalty = constrain(((95f-((float)hits*100f/(float)(hits+misses)))*.2f),0,100);
-    
     //writes to the screen (not console)
-    text("Finished!", width / 2, height / 2); 
+    text("Finished!", width / 2, height / 2);
     text("Hits: " + hits, width / 2, height / 2 + 20);
     text("Misses: " + misses, width / 2, height / 2 + 40);
     text("Accuracy: " + (float)hits*100f/(float)(hits+misses) +"%", width / 2, height / 2 + 60);
@@ -99,12 +115,12 @@ void mousePressed() //mouse was pressed! Test to see if hit was in target!
 
   Rectangle bounds = getButtonLocation(trials.get(trialNum));
 
- //check to see if mouse cursor is inside target button 
+  //check to see if mouse cursor is inside target button
   if ((mouseX > bounds.x && mouseX < bounds.x + bounds.width) && (mouseY > bounds.y && mouseY < bounds.y + bounds.height)) // test to see if hit was within bounds
   {
     System.out.println("HIT! " + trialNum + " " + (millis() - startTime)); // success
-    hits++; 
-  } 
+    hits++;
+  }
   else //must be a miss...
   {
     System.out.println("MISSED! " + trialNum + " " + (millis() - startTime)); // fail
@@ -115,33 +131,51 @@ void mousePressed() //mouse was pressed! Test to see if hit was in target!
 
   //in the example code below, we can use Java Robot to move the mouse back to the middle of window
   //robot.mouseMove(width/2, (height)/2); //on click, move cursor to roughly center of window!
-}  
+}
 
 //probably shouldn't have to edit this method
 Rectangle getButtonLocation(int i) //for a given button index, what is its location and size
 {
-   int x = (i % 4) * (padding + buttonSize) + margin;
-   int y = (i / 4) * (padding + buttonSize) + margin;
-   return new Rectangle(x, y, buttonSize, buttonSize);
+  int x = (i % 4) * (padding + buttonSize) + margin;
+  int y = (i / 4) * (padding + buttonSize) + margin;
+
+  return new Rectangle(x, y, buttonSize, buttonSize);
 }
 
-//you can edit this method to change how buttons appear if you wish. 
+//you can edit this method to change how buttons appear if you wish.
 void drawButton(int i)
 {
   Rectangle bounds = getButtonLocation(i);
 
   if (trials.get(trialNum) == i) // see if current button is the target
-    fill(0, 255, 255); // if so, fill cyan
-  else
-    fill(200); // if not, fill gray
+  {
+    // Draw the main button
+    fill(0, 255, 255); // cyan fill
+    rect(bounds.x, bounds.y, bounds.width, bounds.height);
 
-  rect(bounds.x, bounds.y, bounds.width, bounds.height); //draw button
+    // Draw animated glow border (inside the button)
+    float glowAlpha = 150 + glowIntensity * 105; // alpha ranges from 150 to 255
+    float glowThickness = 2 + glowIntensity * 4; // thickness ranges from 2 to 6 pixels
+
+    stroke(255, 0, 0, glowAlpha); // white glow with varying alpha
+    strokeWeight(glowThickness);
+    noFill();
+    rect(bounds.x + glowThickness/2, bounds.y + glowThickness/2, 
+         bounds.width - glowThickness, bounds.height - glowThickness);
+
+    noStroke(); // reset to no stroke for other elements
+  }
+  else
+  {
+    fill(200); // if not, fill gray
+    rect(bounds.x, bounds.y, bounds.width, bounds.height); //draw button
+  }
 }
 
 void mouseMoved()
 {
-   //can do stuff everytime the mouse is moved (i.e., not clicked)
-   //https://processing.org/reference/mouseMoved_.html
+  //can do stuff everytime the mouse is moved (i.e., not clicked)
+  //https://processing.org/reference/mouseMoved_.html
 }
 
 void mouseDragged()
@@ -150,7 +184,7 @@ void mouseDragged()
   //https://processing.org/reference/mouseDragged_.html
 }
 
-void keyPressed() 
+void keyPressed()
 {
   //can use the keyboard if you wish
   //https://processing.org/reference/keyTyped_.html
