@@ -52,6 +52,16 @@ void setup()
   surface.setLocation(0,0);// put window in top left corner of screen (doesn't always work)
 }
 
+boolean isHoveringOverButton() {
+  for (int i = 0; i < 16; i++) {
+    Rectangle b = getButtonLocation(i);
+    if (mouseX > b.x && mouseX < b.x + b.width &&
+        mouseY > b.y && mouseY < b.y + b.height) {
+      return true;
+    }
+  }
+  return false;
+}
 
 void draw()
 {
@@ -79,8 +89,15 @@ void draw()
   for (int i = 0; i < 16; i++)// for all buttons
     drawButton(i); //draw button
 
-  fill(255, 0, 0, 200); // set fill color to translucent red
-  ellipse(mouseX, mouseY, 20, 20); //draw user cursor as a circle with a diameter of 20
+  if (isHoveringOverButton()) {
+    fill(255, 0, 0, 200); 
+     // green when hovering a button
+  } else {
+    fill(255, 255, 0, 200);
+    // red otherwise
+  }
+  ellipse(mouseX, mouseY, 20, 20);
+
 }
 
 void mousePressed() //mouse was pressed! Test to see if hit was in target!
