@@ -17,6 +17,7 @@ int trialNum = 0; //the current trial number (indexes into trials array above)
 int startTime = 0; // time starts when the first click is captured
 int finishTime = 0; //records the time of the final click
 int hits = 0; //number of successful clicks
+float angle;
 int misses = 0; //number of missed clicks
 Robot robot; //initialized in setup 
 
@@ -26,7 +27,7 @@ void setup()
 {
   size(700, 700); // set the size of the window
   //noCursor(); //hides the system cursor if you want
-  noStroke(); //turn off all strokes, we're just using fills here (can change this if you want)
+  //noStroke(); //turn off all strokes, we're just using fills here (can change this if you want)
   textFont(createFont("Arial", 16)); //sets the font to Arial size 16
   textAlign(CENTER);
   frameRate(60);
@@ -81,9 +82,28 @@ void draw()
 
   fill(255, 0, 0, 200); // set fill color to translucent red
   ellipse(mouseX, mouseY, 20, 20); //draw user cursor as a circle with a diameter of 20
+  stroke(100);
+  strokeWeight(2);
+  if (trialNum > 0)   {
+    //angle = atan(-(((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize))/((trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize)+.01));
+    angle = atan2(-(((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize)),(trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize));
+        //if (((trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize)+.01) < 0) angle = PI-angle;
+
+    float cx = (trials.get(trialNum-1) % 4) * (padding + buttonSize) + margin + buttonSize/2;
+    float cy = (trials.get(trialNum-1) / 4) * (padding + buttonSize) + margin + buttonSize/2;
+    println(angle*180/PI);
+    for (int i = 0; i < 5; i++) {
+      drawArrow(cx, cy, 10, PI-angle);
+      //cx += cos(angle)*30;
+      cx +=((trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize))/5;
+      //cy -= sin(angle)*30;
+      cy +=(((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize))/5;
+    }
+    //line((trials.get(trialNum-1) % 4) * (padding + buttonSize) + margin + buttonSize/2, (trials.get(trialNum-1) / 4) * (padding + buttonSize) + margin + buttonSize/2, (trials.get(trialNum) % 4) * (padding + buttonSize) + margin + buttonSize/2,(trials.get(trialNum) / 4) * (padding + buttonSize) + margin + buttonSize/2);
+  }
 }
 
-void mousePressed() //mouse was pressed! Test to see if hit was in target!
+void keyPressed() //mouse was pressed! Test to see if hit was in target!
 {
   if (trialNum >= trials.size()) //if task is over, just return
     return;
@@ -132,10 +152,17 @@ void drawButton(int i)
 
   if (trials.get(trialNum) == i) // see if current button is the target
     fill(0, 255, 255); // if so, fill cyan
-  else
+  //else if (trialNum < 15 && trials.get(trialNum+1) == i) fill (0,100,100);
+  else {
     fill(200); // if not, fill gray
+  }
 
   rect(bounds.x, bounds.y, bounds.width, bounds.height); //draw button
+}
+void drawArrow(float x, float y, int length, float angle) {
+  strokeWeight(5);
+  line(x, y, x+cos(angle+0.785398)*length, y + sin(angle+0.785398)*length);
+  line(x, y, x+cos(angle-0.785398)*length, y+sin(angle-0.785398)*length);
 }
 
 void mouseMoved()
@@ -150,7 +177,7 @@ void mouseDragged()
   //https://processing.org/reference/mouseDragged_.html
 }
 
-void keyPressed() 
+//void keyPressed() 
 {
   //can use the keyboard if you wish
   //https://processing.org/reference/keyTyped_.html
