@@ -22,6 +22,19 @@ Robot robot; //initialized in setup
 
 int numRepeats = 1; //sets the number of times each button repeats in the user study. 1 = each square will appear as the target once.
 
+// put near your globals
+final float cursorDiameter = 35;   // matches the drawn main dot
+final float cursorRadius   = cursorDiameter * 0.5f;
+
+// circle-rect collision: does a circle at (cx, cy) with radius r touch rect 'b'?
+boolean circleIntersectsRect(float cx, float cy, float r, Rectangle b) {
+  float closestX = constrain(cx, b.x, b.x + b.width);
+  float closestY = constrain(cy, b.y, b.y + b.height);
+  float dx = cx - closestX;
+  float dy = cy - closestY;
+  return (dx*dx + dy*dy) <= (r*r);
+}
+
 void setup()
 {
   size(700, 700); // set the size of the window
@@ -106,7 +119,7 @@ void mousePressed() //mouse was pressed! Test to see if hit was in target!
   Rectangle bounds = getButtonLocation(trials.get(trialNum));
 
  //check to see if mouse cursor is inside target button 
-  if ((mouseX > bounds.x && mouseX < bounds.x + bounds.width) && (mouseY > bounds.y && mouseY < bounds.y + bounds.height)) // test to see if hit was within bounds
+  if (circleIntersectsRect(mouseX, mouseY, cursorRadius, bounds))
   {
     System.out.println("HIT! " + trialNum + " " + (millis() - startTime)); // success
     hits++; 
