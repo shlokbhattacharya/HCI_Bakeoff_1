@@ -87,27 +87,26 @@ void draw()
   for (int i = 0; i < 16; i++)// for all buttons
     drawButton(i); //draw button
 
-  fill(255, 0, 0, 200); // set fill color to translucent red
-  ellipse(snappedX, snappedY, 20, 20); //draw user cursor as a circle with a diameter of 20
-  stroke(100);
-  strokeWeight(2);
+  // Draw arrows first
   if (trialNum > 0)   {
-    //angle = atan(-(((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize))/((trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize)+.01));
+    stroke(100);
+    strokeWeight(2);
     angle = atan2(-(((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize)),(trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize));
-        //if (((trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize)+.01) < 0) angle = PI-angle;
 
     float cx = (trials.get(trialNum-1) % 4) * (padding + buttonSize) + margin + buttonSize/2;
     float cy = (trials.get(trialNum-1) / 4) * (padding + buttonSize) + margin + buttonSize/2;
     println(angle*180/PI);
     for (int i = 0; i < 5; i++) {
       drawArrow(cx, cy, 10, PI-angle);
-      //cx += cos(angle)*30;
       cx +=((trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize))/5;
-      //cy -= sin(angle)*30;
       cy +=(((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize))/5;
     }
-    //line((trials.get(trialNum-1) % 4) * (padding + buttonSize) + margin + buttonSize/2, (trials.get(trialNum-1) / 4) * (padding + buttonSize) + margin + buttonSize/2, (trials.get(trialNum) % 4) * (padding + buttonSize) + margin + buttonSize/2,(trials.get(trialNum) / 4) * (padding + buttonSize) + margin + buttonSize/2);
   }
+  
+  // Reset stroke and draw cursor
+  noStroke();
+  fill(255, 0, 0, 200); // set fill color to translucent red
+  ellipse(snappedX, snappedY, 20, 20); //draw user cursor as a circle with a diameter of 20
 }
 
 // New function to update snapped cursor position
@@ -187,8 +186,14 @@ Rectangle getButtonLocation(int i) //for a given button index, what is its locat
 void drawButton(int i)
 {
   Rectangle bounds = getButtonLocation(i);
+  
+  // Check if snapped cursor is over this button
+  boolean isHovered = (snappedX > bounds.x && snappedX < bounds.x + bounds.width) && 
+                      (snappedY > bounds.y && snappedY < bounds.y + bounds.height);
 
-  if (trials.get(trialNum) == i) // see if current button is the target
+  if (trials.get(trialNum) == i && isHovered) // target button with cursor over it
+    fill(255, 165, 0); // orange
+  else if (trials.get(trialNum) == i) // see if current button is the target
     fill(0, 255, 255); // if so, fill cyan
   //else if (trialNum < 15 && trials.get(trialNum+1) == i) fill (0,100,100);
   else {
@@ -198,6 +203,7 @@ void drawButton(int i)
   rect(bounds.x, bounds.y, bounds.width, bounds.height); //draw button
 }
 void drawArrow(float x, float y, int length, float angle) {
+  stroke(255, 165, 0); // Orange color
   strokeWeight(5);
   line(x, y, x+cos(angle+0.785398)*length, y + sin(angle+0.785398)*length);
   line(x, y, x+cos(angle-0.785398)*length, y+sin(angle-0.785398)*length);
