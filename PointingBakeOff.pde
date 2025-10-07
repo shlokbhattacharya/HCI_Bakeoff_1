@@ -22,18 +22,24 @@ Robot robot; //initialized in setup
 
 int numRepeats = 1; //sets the number of times each button repeats in the user study. 1 = each square will appear as the target once.
 
+// Snapping feature
+final float SNAP_DISTANCE = 100;
+int snappedX = -1;
+int snappedY = -1;
+
+// Arrows-to-next feature
+float angle;
+
 void setup()
 {
   size(700, 700); // set the size of the window
   //noCursor(); //hides the system cursor if you want
-  noStroke(); //turn off all strokes, we're just using fills here (can change this if you want)
   textFont(createFont("Arial", 16)); //sets the font to Arial size 16
   textAlign(CENTER);
   frameRate(60);
   ellipseMode(CENTER); //ellipses are drawn from the center (BUT RECTANGLES ARE NOT! By default, rectangles are drawn from their upper left corner. )
-  //rectMode(CENTER); //enabling will break the scaffold code, but you might find it easier to work with centered rects
 
- //optional code below. This creates a "Java Robot" class that can move the system cursor.
+  //optional code below. This creates a "Java Robot" class that can move the system cursor.
   try {
     robot = new Robot(); 
   } 
@@ -79,49 +85,100 @@ void draw()
   for (int i = 0; i < 16; i++)// for all buttons
     drawButton(i); //draw button
 
-  fill(255, 0, 0, 200);
-  ellipse(mouseX, mouseY, 35, 35); // main dot
-  stroke(255);       // white outline
-  strokeWeight(3);   // thicker border
-  noFill();
-  ellipse(mouseX, mouseY, 39, 39); // outline just outside the dot
-  noStroke(); // reset stroke for later shapes
+  // Snapping feature
+  updateSnappedPosition();
 
+  // Larger cursor feature
+  int cx = (snappedX != -1 && snappedY != -1) ? snappedX : mouseX;
+  int cy = (snappedY != -1 && snappedX != -1) ? snappedY : mouseY;
+  fill(255, 0, 0, 200);
+  noStroke();
+  ellipse(cx, cy, 35, 35);
+  stroke(255);
+  strokeWeight(3);
+  noFill();
+  ellipse(cx, cy, 39, 39);
+  noStroke();
+
+  // Arrows-to-next feature
+  stroke(100);
+  strokeWeight(2);
+  if (trialNum > 0) {
+    angle = atan2(
+      -(((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize)),
+      (trials.get(trialNum) % 4) * (padding + buttonSize) - (trials.get(trialNum-1) % 4) * (padding + buttonSize)
+    );
+
+    float ax = (trials.get(trialNum-1) % 4) * (padding + buttonSize) + margin + buttonSize/2;
+    float ay = (trials.get(trialNum-1) / 4) * (padding + buttonSize) + margin + buttonSize/2;
+
+    for (int i = 0; i < 5; i++) {
+      drawArrow(ax, ay, 10, PI - angle);
+      ax += ((trials.get(trialNum) % 4) * (padding + buttonSize) - (trials.get(trialNum-1) % 4) * (padding + buttonSize)) / 5.0;
+      ay += (((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize)) / 5.0;
+    }
+  }
+  noStroke();
 }
 
-void mousePressed() //mouse was pressed! Test to see if hit was in target!
+// Snapping feature
+void updateSnappedPosition() {
+  float minDistance = SNAP_DISTANCE;
+  int closestButtonX = -1;
+  int closestButtonY = -1;
+  
+  for (int i = 0; i < 16; i++) {
+    Rectangle bounds = getButtonLocation(i);
+    int buttonCenterX = bounds.x + bounds.width / 2;
+    int buttonCenterY = bounds.y + bounds.height / 2;
+    float distance = dist(mouseX, mouseY, buttonCenterX, buttonCenterY);
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestButtonX = buttonCenterX;
+      closestButtonY = buttonCenterY;
+    }
+  }
+  snappedX = closestButtonX;
+  snappedY = closestButtonY;
+}
+
+// Arrows-to-next feature
+void drawArrow(float x, float y, int length, float angle) {
+  strokeWeight(5);
+  line(x, y, x + cos(angle + 0.785398) * length, y + sin(angle + 0.785398) * length);
+  line(x, y, x + cos(angle - 0.785398) * length, y + sin(angle - 0.785398) * length);
+}
+
+// Keyboard press (in arrowsToNext branch)
+void keyPressed()
 {
-  if (trialNum >= trials.size()) //if task is over, just return
+  if (trialNum >= trials.size())
     return;
 
-  if (trialNum == 0) //check if first click, if so, start timer
+  if (trialNum == 0)
     startTime = millis();
 
-  if (trialNum == trials.size() - 1) //check if final click
-  {
+  if (trialNum == trials.size() - 1) {
     finishTime = millis();
-    println("we're done!"); //write to terminal some output. Useful for debugging too.
+    println("we're done!");
   }
 
   Rectangle bounds = getButtonLocation(trials.get(trialNum));
 
- //check to see if mouse cursor is inside target button 
-  if ((mouseX > bounds.x && mouseX < bounds.x + bounds.width) && (mouseY > bounds.y && mouseY < bounds.y + bounds.height)) // test to see if hit was within bounds
-  {
-    System.out.println("HIT! " + trialNum + " " + (millis() - startTime)); // success
+  int clickX = (snappedX != -1) ? snappedX : mouseX;
+  int clickY = (snappedY != -1) ? snappedY : mouseY;
+
+  if ((clickX > bounds.x && clickX < bounds.x + bounds.width) &&
+      (clickY > bounds.y && clickY < bounds.y + bounds.height)) {
+    System.out.println("HIT! " + trialNum + " " + (millis() - startTime));
     hits++; 
-  } 
-  else //must be a miss...
-  {
-    System.out.println("MISSED! " + trialNum + " " + (millis() - startTime)); // fail
+  } else {
+    System.out.println("MISSED! " + trialNum + " " + (millis() - startTime));
     misses++;
   }
 
-  trialNum++; //doesn't matter if user hit or missed, we move onto next trial
-
-  //in the example code below, we can use Java Robot to move the mouse back to the middle of window
-  //robot.mouseMove(width/2, (height)/2); //on click, move cursor to roughly center of window!
-}  
+  trialNum++;
+}
 
 //probably shouldn't have to edit this method
 Rectangle getButtonLocation(int i) //for a given button index, what is its location and size
@@ -146,19 +203,10 @@ void drawButton(int i)
 
 void mouseMoved()
 {
-   //can do stuff everytime the mouse is moved (i.e., not clicked)
    //https://processing.org/reference/mouseMoved_.html
 }
 
 void mouseDragged()
 {
-  //can do stuff everytime the mouse is dragged
   //https://processing.org/reference/mouseDragged_.html
-}
-
-void keyPressed() 
-{
-  //can use the keyboard if you wish
-  //https://processing.org/reference/keyTyped_.html
-  //https://processing.org/reference/keyCode.html
 }
