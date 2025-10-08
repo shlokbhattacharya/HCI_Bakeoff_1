@@ -84,7 +84,7 @@ void draw()
   ellipse(mouseX, mouseY, 20, 20); //draw user cursor as a circle with a diameter of 20
   stroke(100);
   strokeWeight(2);
-
+  if (trialNum > 0)   {
     line((trials.get(trialNum-1) % 4) * (padding + buttonSize) + margin + buttonSize/2, (trials.get(trialNum-1) / 4) * (padding + buttonSize) + margin + buttonSize/2, (trials.get(trialNum) % 4) * (padding + buttonSize) + margin + buttonSize/2,(trials.get(trialNum) / 4) * (padding + buttonSize) + margin + buttonSize/2);
   }
 }
