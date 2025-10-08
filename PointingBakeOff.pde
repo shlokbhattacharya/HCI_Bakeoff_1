@@ -22,8 +22,8 @@ int misses = 0; //number of missed clicks
 Robot robot; //initialized in setup 
 
 // Snapping variables
-float snappedX, snappedY; // The snapped cursor position
-final float snapRadius = 150; // Distance within which snapping occurs
+float snappedX, snappedY; 
+final float snapRadius = 150; 
 
 int numRepeats = 1; //sets the number of times each button repeats in the user study. 1 = each square will appear as the target once.
 
@@ -81,13 +81,11 @@ void draw()
 
   text((trialNum + 1) + " of " + trials.size(), 40, 20); //display what trial the user is on
 
-  // Calculate snapped cursor position
   updateSnappedCursor();
 
   for (int i = 0; i < 16; i++)// for all buttons
     drawButton(i); //draw button
 
-  // Draw arrows first
   if (trialNum > 0)   {
     stroke(100);
     strokeWeight(2);
@@ -103,18 +101,15 @@ void draw()
     }
   }
   
-  // Reset stroke and draw cursor
   noStroke();
   fill(255, 0, 0, 200); // set fill color to translucent red
   ellipse(snappedX, snappedY, 20, 20); //draw user cursor as a circle with a diameter of 20
 }
 
-// New function to update snapped cursor position
 void updateSnappedCursor() {
   float minDist = Float.MAX_VALUE;
   int closestButton = -1;
   
-  // Find the closest button to the mouse cursor
   for (int i = 0; i < 16; i++) {
     Rectangle bounds = getButtonLocation(i);
     float buttonCenterX = bounds.x + bounds.width / 2;
@@ -128,13 +123,11 @@ void updateSnappedCursor() {
     }
   }
   
-  // If within snap radius, snap to closest button center
   if (minDist < snapRadius && closestButton != -1) {
     Rectangle bounds = getButtonLocation(closestButton);
     snappedX = bounds.x + bounds.width / 2;
     snappedY = bounds.y + bounds.height / 2;
   } else {
-    // Otherwise, use actual mouse position
     snappedX = mouseX;
     snappedY = mouseY;
   }
@@ -187,7 +180,6 @@ void drawButton(int i)
 {
   Rectangle bounds = getButtonLocation(i);
   
-  // Check if snapped cursor is over this button
   boolean isHovered = (snappedX > bounds.x && snappedX < bounds.x + bounds.width) && 
                       (snappedY > bounds.y && snappedY < bounds.y + bounds.height);
 
