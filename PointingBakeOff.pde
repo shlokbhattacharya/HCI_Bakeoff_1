@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import processing.core.PApplet;
 
+// import for CSV writing
+import java.io.PrintWriter;
+
 //Setting up a bunch of global variables
 int margin = 200; //set the margin around the squares
 final int padding = 50; // padding between buttons and also their width/height
@@ -27,18 +30,22 @@ final float snapRadius = 150;
 
 int numRepeats = 1; //sets the number of times each button repeats in the user study. 1 = each square will appear as the target once.
 
+// constant to track start time and cursor location
+int participantID = 1;        
+float trialStartCursorX = 0;  
+float trialStartCursorY = 0;   
+int trialStartMillis = 0;     
+PrintWriter csv;               
+boolean csvOpen = false;       
+
 void setup()
 {
   size(700, 700); // set the size of the window
-  //noCursor(); //hides the system cursor if you want
-  //noStroke(); //turn off all strokes, we're just using fills here (can change this if you want)
-  textFont(createFont("Arial", 16)); //sets the font to Arial size 16
+  textFont(createFont("Arial", 16)); //sets the font
   textAlign(CENTER);
   frameRate(60);
-  ellipseMode(CENTER); //ellipses are drawn from the center (BUT RECTANGLES ARE NOT! By default, rectangles are drawn from their upper left corner. )
-  //rectMode(CENTER); //enabling will break the scaffold code, but you might find it easier to work with centered rects
+  ellipseMode(CENTER);
 
- //optional code below. This creates a "Java Robot" class that can move the system cursor.
   try {
     robot = new Robot(); 
   } 
@@ -47,28 +54,39 @@ void setup()
   }
 
   //===DON'T MODIFY MY RANDOM ORDERING CODE==
-  //generate list of targets and randomize the order
-  for (int i = 0; i < 16; i++) //loop for the number of buttons in 4x4 grid (i.e., 16)
-    for (int k = 0; k < numRepeats; k++) //loop for the number of times each button repeats. Scaffold code default is 1, but it will be higher in the actual bakeoff.
+  for (int i = 0; i < 16; i++)
+    for (int k = 0; k < numRepeats; k++)
       trials.add(i);
-  Collections.shuffle(trials); //randomize the order of the targets
-  System.out.println("trial order: " + trials); //print out the target list for debugging
+  Collections.shuffle(trials);
+  System.out.println("trial order: " + trials);
   
-  surface.setLocation(0,0);// put window in top left corner of screen (doesn't always work)
-}
+  surface.setLocation(0,0);
 
+  // Print a header
+  // System.out.println("Trial,ParticipantID,CursorStartX,CursorStartY,TargetCenterX,TargetCenterY,TargetWidth,TimeSecs,Success"); // CHANGED: no console header now that we save CSV
+
+  // initialize CSV
+  csv = createWriter("bakeoff_data_PID_" + participantID + ".csv");
+  csv.println("ParticipantID,Trial,CursorStartX,CursorStartY,TargetCenterX,TargetCenterY,TargetWidth,TimeSecs,Success");
+  csv.flush(); 
+  csvOpen = true;
+
+  // Update initial position and time
+  trialStartCursorX = mouseX;   
+  trialStartCursorY = mouseY;  
+  trialStartMillis  = millis();
+}
 
 void draw()
 {
-  background(0); //black out the window each time we draw.
-  fill(255); //set fill color to white
+  background(0);
+  fill(255);
 
-  if (trialNum >= trials.size()) //check to see if user study is over
+  if (trialNum >= trials.size())
   {
     float timeTaken = (finishTime-startTime) / 1000f;
     float penalty = constrain(((95f-((float)hits*100f/(float)(hits+misses)))*.2f),0,100);
     
-    //writes to the screen (not console)
     text("Finished!", width / 2, height / 2); 
     text("Hits: " + hits, width / 2, height / 2 + 20);
     text("Misses: " + misses, width / 2, height / 2 + 40);
@@ -76,34 +94,42 @@ void draw()
     text("Total time taken: " + timeTaken + " sec", width / 2, height / 2 + 80);
     text("Average time for each button: " + nf((timeTaken)/(float)(hits+misses),0,3) + " sec", width / 2, height / 2 + 100);
     text("Average time for each button + penalty: " + nf(((timeTaken)/(float)(hits+misses) + penalty),0,3) + " sec", width / 2, height / 2 + 140);
-    return; //return, nothing else to do now experiment is over
+
+    // close CSV when experiment over
+    if (csvOpen && csv != null) {
+      csv.flush();                
+      csv.close();                
+      csvOpen = false;            
+    }                             
+    return;
   }
 
-  text((trialNum + 1) + " of " + trials.size(), 40, 20); //display what trial the user is on
+  text((trialNum + 1) + " of " + trials.size(), 40, 20);
 
   updateSnappedCursor();
 
-  for (int i = 0; i < 16; i++)// for all buttons
-    drawButton(i); //draw button
+  for (int i = 0; i < 16; i++)
+    drawButton(i);
 
-  if (trialNum > 0)   {
+  if (trialNum > 0) {
     stroke(100);
     strokeWeight(2);
-    angle = atan2(-(((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize)),(trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize));
+    angle = atan2(-(((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize)), 
+                 (trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize));
 
     float cx = (trials.get(trialNum-1) % 4) * (padding + buttonSize) + margin + buttonSize/2;
     float cy = (trials.get(trialNum-1) / 4) * (padding + buttonSize) + margin + buttonSize/2;
-    println(angle*180/PI);
+    //println(angle*180/PI);
     for (int i = 0; i < 5; i++) {
       drawArrow(cx, cy, 10, PI-angle);
-      cx +=((trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize))/5;
-      cy +=(((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize))/5;
+      cx += ((trials.get(trialNum) % 4) * (padding + buttonSize)-(trials.get(trialNum-1) % 4) * (padding + buttonSize))/5;
+      cy += (((trials.get(trialNum) / 4) - (trials.get(trialNum-1) / 4)) * (padding + buttonSize))/5;
     }
   }
-  
+
   noStroke();
-  fill(255, 0, 0, 200); // set fill color to translucent red
-  ellipse(snappedX, snappedY, 20, 20); //draw user cursor as a circle with a diameter of 20
+  fill(255, 0, 0, 200);
+  ellipse(snappedX, snappedY, 20, 20);
 }
 
 void updateSnappedCursor() {
@@ -115,10 +141,9 @@ void updateSnappedCursor() {
     float buttonCenterX = bounds.x + bounds.width / 2;
     float buttonCenterY = bounds.y + bounds.height / 2;
     
-    float dist = dist(mouseX, mouseY, buttonCenterX, buttonCenterY);
-    
-    if (dist < minDist) {
-      minDist = dist;
+    float d = dist(mouseX, mouseY, buttonCenterX, buttonCenterY);
+    if (d < minDist) {
+      minDist = d;
       closestButton = i;
     }
   }
@@ -133,49 +158,81 @@ void updateSnappedCursor() {
   }
 }
 
-void keyPressed() //mouse was pressed! Test to see if hit was in target!
+void keyPressed()
 {
-  if (trialNum >= trials.size()) //if task is over, just return
+  if (trialNum >= trials.size())
     return;
 
-  if (trialNum == 0) //check if first click, if so, start timer
+  if (trialNum == 0) // start global timer on first click
     startTime = millis();
-
-  if (trialNum == trials.size() - 1) //check if final click
-  {
-    finishTime = millis();
-    println("we're done!"); //write to terminal some output. Useful for debugging too.
-  }
 
   Rectangle bounds = getButtonLocation(trials.get(trialNum));
 
- //check to see if snapped cursor is inside target button 
-  if ((snappedX > bounds.x && snappedX < bounds.x + bounds.width) && (snappedY > bounds.y && snappedY < bounds.y + bounds.height)) // test to see if hit was within bounds
-  {
-    System.out.println("HIT! " + trialNum + " " + (millis() - startTime)); // success
-    hits++; 
-  } 
-  else //must be a miss...
-  {
-    System.out.println("MISSED! " + trialNum + " " + (millis() - startTime)); // fail
+  boolean hit = (snappedX > bounds.x && snappedX < bounds.x + bounds.width) &&
+                (snappedY > bounds.y && snappedY < bounds.y + bounds.height);
+
+  int success = 0;
+
+  if (hit) {
+    hits++;
+    success = 1;
+  } else {
     misses++;
   }
+  
+  // Compute Center Coordinate of Target
+  float targetCenterX = bounds.x + bounds.width / 2.0f;
+  float targetCenterY = bounds.y + bounds.height / 2.0f;
+  float timeSecs = (millis() - trialStartMillis) / 1000.0f;
 
-  trialNum++; //doesn't matter if user hit or missed, we move onto next trial
+  // build csv row
+  String row = 
+    participantID + "," +
+    (trialNum + 1) + "," +                 
+    nf(trialStartCursorX, 0, 0) + "," +    
+    nf(trialStartCursorY, 0, 0) + "," +   
+    nf(targetCenterX, 0, 0) + "," +        
+    nf(targetCenterY, 0, 0) + "," +        
+    buttonSize + "," +                  
+    nf(timeSecs, 0, 3) + "," +             
+    success;                                    
 
-  //in the example code below, we can use Java Robot to move the mouse back to the middle of window
-  //robot.mouseMove(width/2, (height)/2); //on click, move cursor to roughly center of window!
-}  
+  // === ADDED: write to CSV (only for correct trials) ===
+  if (csvOpen && csv != null) { 
+    csv.println(row);           
+    csv.flush();                
+  }                            
+  
+  // don't increment if done
+  if (trialNum == trials.size() - 1) { 
+    finishTime = millis();             
+    println("Tracking Done");            
 
-//probably shouldn't have to edit this method
-Rectangle getButtonLocation(int i) //for a given button index, what is its location and size
+    // close CSV at the end as a safety (also closed in draw() end-state)
+    if (csvOpen && csv != null) { 
+      csv.flush();                
+      csv.close();               
+      csvOpen = false;            
+    }                             
+
+    trialNum++;                        
+    return;                            
+  }
+
+  // Update the cursor location for the NEXT trial
+  trialNum++;                                  
+  trialStartCursorX = mouseX;                  
+  trialStartCursorY = mouseY;                  
+  trialStartMillis  = millis();                
+}
+
+Rectangle getButtonLocation(int i)
 {
    int x = (i % 4) * (padding + buttonSize) + margin;
    int y = (i / 4) * (padding + buttonSize) + margin;
    return new Rectangle(x, y, buttonSize, buttonSize);
 }
 
-//you can edit this method to change how buttons appear if you wish. 
 void drawButton(int i)
 {
   Rectangle bounds = getButtonLocation(i);
@@ -183,39 +240,23 @@ void drawButton(int i)
   boolean isHovered = (snappedX > bounds.x && snappedX < bounds.x + bounds.width) && 
                       (snappedY > bounds.y && snappedY < bounds.y + bounds.height);
 
-  if (trials.get(trialNum) == i && isHovered) // target button with cursor over it
-    fill(255, 165, 0); // orange
-  else if (trials.get(trialNum) == i) // see if current button is the target
-    fill(0, 255, 255); // if so, fill cyan
-  //else if (trialNum < 15 && trials.get(trialNum+1) == i) fill (0,100,100);
-  else {
-    fill(200); // if not, fill gray
-  }
+  if (trials.get(trialNum) == i && isHovered)
+    fill(255, 165, 0);
+  else if (trials.get(trialNum) == i)
+    fill(0, 255, 255);
+  else
+    fill(200);
 
-  rect(bounds.x, bounds.y, bounds.width, bounds.height); //draw button
+  rect(bounds.x, bounds.y, bounds.width, bounds.height);
 }
+
 void drawArrow(float x, float y, int length, float angle) {
-  stroke(255, 165, 0); // Orange color
+  stroke(255, 165, 0);
   strokeWeight(5);
   line(x, y, x+cos(angle+0.785398)*length, y + sin(angle+0.785398)*length);
   line(x, y, x+cos(angle-0.785398)*length, y+sin(angle-0.785398)*length);
 }
 
-void mouseMoved()
-{
-   //can do stuff everytime the mouse is moved (i.e., not clicked)
-   //https://processing.org/reference/mouseMoved_.html
-}
-
-void mouseDragged()
-{
-  //can do stuff everytime the mouse is dragged
-  //https://processing.org/reference/mouseDragged_.html
-}
-
-//void keyPressed() 
-{
-  //can use the keyboard if you wish
-  //https://processing.org/reference/keyTyped_.html
-  //https://processing.org/reference/keyCode.html
-}
+void mouseMoved(){}
+void mouseDragged(){}
+//void keyPressed(){ /* unused variant */ }
